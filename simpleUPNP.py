@@ -3,9 +3,8 @@ from xml.etree import ElementTree
 import socket
 import gi
 import sys
-gi.require_version("Gtk", "4.0")
-gi.require_version('Adw', '1')
-from gi.repository import Gtk, Adw
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
 import netifaces
 
 
@@ -99,6 +98,7 @@ def remove_port_mapping(external_port, protocol="TCP"):
 
 def add_port_mapping(internal_client, external_port, internal_port, protocol, description, leaseDuration):
     upnp_gateway = discover_upnp_devices()
+    print(upnp_gateway)
     location = upnp_gateway['LOCATION']  # Change this to your router's description URL
     control_url = get_control_url(location)
 
@@ -132,12 +132,12 @@ def add_port_mapping(internal_client, external_port, internal_port, protocol, de
         else:
             print("Failed to add port mapping.\n",response.text)
 
-class MainWindow(Gtk.ApplicationWindow):
+class MainWindow(Gtk.Window):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Things will go here
         self.set_default_size(600, 400)
         self.set_title("MyApp")
+        
         self.box1 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)
         self.inputRow = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         self.labelRow = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=25)
@@ -147,25 +147,25 @@ class MainWindow(Gtk.ApplicationWindow):
         
         self.labelRow.set_margin_top(5)
 
-        #self.button.connect('clicked', self.hello)
+        self.add(self.box1)
 
-        self.set_child(self.box1)  # Horizontal box to window
-        self.box1.append(self.gridBox)
-        self.box1.append(self.labelRow)
-        self.box1.append(self.inputRow)  # And another one, empty for now
-
+        self.box1.pack_start(self.gridBox, True, True, 0)
+        self.box1.pack_start(self.labelRow, True, True, 0)
+        self.box1.pack_start(self.inputRow, True, True, 0)
 
         self.internalPortBox = Gtk.Entry(text="12345")
         self.externalPortBox = Gtk.Entry(text="12345")
         self.internalIPBox = Gtk.Entry(text=(netifaces.ifaddresses(netifaces.interfaces()[2])[2][0]['addr']))
         self.leaseDurationBox = Gtk.Entry(text="0")
         self.descriptionBox = Gtk.Entry(text="Server")
-        self.radioButton1 = Gtk.CheckButton(label="TCP")
-        self.radioButton2 = Gtk.CheckButton(label="UDP")
-        self.radioButton2.set_group(self.radioButton1)
+        self.button1 = Gtk.RadioButton.new_with_label_from_widget(None, "TCP")
+
+        self.button2 = Gtk.RadioButton.new_from_widget(self.button1)
+        self.button2.set_label("UDP")
+
         self.submitButton = Gtk.Button(label="Submit")
 
-        self.radioButton1.set_active(True)
+        self.button1.set_active(True)
 
         self.submitButton.connect('clicked', self.addPort)
 
@@ -183,42 +183,34 @@ class MainWindow(Gtk.ApplicationWindow):
         self.protocolLabel.set_text("Protocol")
 
         self.radioBox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
-        self.radioBox.append(self.radioButton1)
-        self.radioBox.append(self.radioButton2)
+        self.radioBox.pack_start(self.button1, False, False, 0)
+        self.radioBox.pack_start(self.button2, False, False, 0)
 
-        self.labelRow.append(self.interalIPLabel)
-        self.labelRow.append(self.externalPortLabel)
-        self.labelRow.append(self.internalPortLabel)
-        self.labelRow.append(self.leaseDurationLabel)
-        self.labelRow.append(self.descriptionLabel)
-        self.labelRow.append(self.protocolLabel)        
+        self.labelRow.pack_start(self.interalIPLabel, False, False, 0)
+        self.labelRow.pack_start(self.externalPortLabel, False, False, 0)
+        self.labelRow.pack_start(self.internalPortLabel, False, False, 0)
+        self.labelRow.pack_start(self.leaseDurationLabel, False, False, 0)
+        self.labelRow.pack_start(self.descriptionLabel, False, False, 0)
+        self.labelRow.pack_start(self.protocolLabel, False, False, 0)        
 
-        self.inputRow.append(self.internalIPBox)
-        self.inputRow.append(self.internalPortBox)
-        self.inputRow.append(self.externalPortBox)
-        self.inputRow.append(self.leaseDurationBox)
-        self.inputRow.append(self.descriptionBox)
-        self.inputRow.append(self.radioBox)
-        self.inputRow.append(self.submitButton)
+        self.inputRow.pack_start(self.internalIPBox, False, False, 0)
+        self.inputRow.pack_start(self.internalPortBox, False, False, 0)
+        self.inputRow.pack_start(self.externalPortBox, False, False, 0)
+        self.inputRow.pack_start(self.leaseDurationBox, False, False, 0)
+        self.inputRow.pack_start(self.descriptionBox, False, False, 0)
+        self.inputRow.pack_start(self.radioBox, False, False, 0)
+        self.inputRow.pack_start(self.submitButton, False, False, 0)
     
-    def addPort(window, button):
-        protocol = "TCP"
-        if window.radioButton1.get_active():
-            protocol = "TCP"
-        else:
-            protocol = "UDP"
-        add_port_mapping(window.internalIPBox.get_text(), int(window.externalPortBox.get_text()), int(window.internalPortBox.get_text()), protocol, window.descriptionBox.get_text(), int(window.leaseDurationBox.get_text()))
+    def addPort(self, button):
+        protocol = "TCP" if self.button1.get_active() else "UDP"
+        add_port_mapping(self.internalIPBox.get_text(), 
+                         int(self.externalPortBox.get_text()), 
+                         int(self.internalPortBox.get_text()), 
+                         protocol, 
+                         self.descriptionBox.get_text(), 
+                         int(self.leaseDurationBox.get_text()))
 
-        
-
-class MyApp(Adw.Application):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.connect('activate', self.on_activate)
-
-    def on_activate(self, app):
-        self.win = MainWindow(application=app)
-        self.win.present()
-
-app = MyApp(application_id="com.example.GtkApplication")
-app.run(sys.argv)
+win = MainWindow()
+win.connect("destroy", Gtk.main_quit)
+win.show_all()
+Gtk.main()
