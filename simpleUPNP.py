@@ -98,9 +98,20 @@ def remove_port_mapping(external_port, protocol="TCP"):
 
 def add_port_mapping(internal_client, external_port, internal_port, protocol, description, leaseDuration):
     upnp_gateway = discover_upnp_devices()
-    print(upnp_gateway)
-    location = upnp_gateway['LOCATION']  # Change this to your router's description URL
-    control_url = get_control_url(location)
+    try:
+        location = upnp_gateway['LOCATION']  # Change this to your router's description URL
+        control_url = get_control_url(location)
+    except Exception as e:
+        dialog = Gtk.MessageDialog(
+            transient_for=None,
+            flags=0,
+            message_type=Gtk.MessageType.ERROR,
+            buttons=Gtk.ButtonsType.OK,
+            text="Failed to add port mapping, could not find IGD device."
+        )
+        dialog.run()
+        dialog.destroy()
+        return None
 
     if control_url:
         headers = {
@@ -128,8 +139,26 @@ def add_port_mapping(internal_client, external_port, internal_port, protocol, de
         response = requests.post(f"http://192.168.1.1:45766{control_url}", headers=headers, data=body)
         
         if response.status_code == 200:
+            dialog = Gtk.MessageDialog(
+                transient_for=None,
+                flags=0,
+                message_type=Gtk.MessageType.INFO,
+                buttons=Gtk.ButtonsType.OK,
+                text=f"Failed to add port mapping.\n{response.text}"
+            )
+            dialog.run()
+            dialog.destroy()
             print("Port mapping added successfully.\n", response.text)
         else:
+            dialog = Gtk.MessageDialog(
+                transient_for=None,
+                flags=0,
+                message_type=Gtk.MessageType.ERROR,
+                buttons=Gtk.ButtonsType.OK,
+                text=f"Failed to add port mapping.\n{response.text}"
+            )
+            dialog.run()
+            dialog.destroy()
             print("Failed to add port mapping.\n",response.text)
 
 class MainWindow(Gtk.Window):
@@ -140,7 +169,7 @@ class MainWindow(Gtk.Window):
         
         self.box1 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)
         self.inputRow = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-        self.labelRow = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=25)
+        self.labelRow = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=17)
         self.gridBox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
 
         self.box1.set_halign(Gtk.Align.END)
