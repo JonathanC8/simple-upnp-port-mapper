@@ -67,9 +67,22 @@ def get_control_url(location):
 
     return control_url
 
-def remove_port_mapping(external_port, protocol="TCP"):
-    # Replace these values with your router's control URL
-    control_url = "http://192.168.1.1:45766/ctl/IPConn"
+def remove_port_mapping(external_port, protocol):
+    upnp_gateway = discover_upnp_devices()
+    try:
+        location = upnp_gateway['LOCATION']  # Change this to your router's description URL
+        control_url = get_control_url(location)
+    except Exception as e:
+        dialog = Gtk.MessageDialog(
+            transient_for=None,
+            flags=0,
+            message_type=Gtk.MessageType.ERROR,
+            buttons=Gtk.ButtonsType.OK,
+            text="Failed to remove port mapping, could not find IGD device."
+        )
+        dialog.run()
+        dialog.destroy()
+        return None
 
     headers = {
         "Content-Type": "text/xml",
@@ -88,13 +101,30 @@ def remove_port_mapping(external_port, protocol="TCP"):
         </s:Body>
     </s:Envelope>"""
 
-    response = requests.post(control_url, headers=headers, data=body)
+    response = requests.post(f"{location.split('/')[0]}//{location.split('/')[2]}{control_url}", headers=headers, data=body)
 
     if response.status_code == 200:
-        print("Port mapping removed successfully.")
+        dialog = Gtk.MessageDialog(
+            transient_for=None,
+            flags=0,
+            message_type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.OK,
+            text=f"Port mapping removed successfully.\n{response.text}"
+        )
+        dialog.run()
+        dialog.destroy()
+        print("Port mapping removed successfully.\n", response.text)
     else:
-        print("Failed to remove port mapping.")
-        print(response.text)
+        dialog = Gtk.MessageDialog(
+            transient_for=None,
+            flags=0,
+            message_type=Gtk.MessageType.ERROR,
+            buttons=Gtk.ButtonsType.OK,
+            text=f"Failed to remove port mapping.\n{response.text}"
+        )
+        dialog.run()
+        dialog.destroy()
+        print("Failed to remove port mapping.\n",response.text)
 
 def add_port_mapping(internal_client, external_port, internal_port, protocol, description, leaseDuration):
     upnp_gateway = discover_upnp_devices()
@@ -136,7 +166,7 @@ def add_port_mapping(internal_client, external_port, internal_port, protocol, de
             </s:Body>
         </s:Envelope>"""
 
-        response = requests.post(f"http://192.168.1.1:45766{control_url}", headers=headers, data=body)
+        response = requests.post(f"{location.split('/')[0]}//{location.split('/')[2]}{control_url}", headers=headers, data=body)
         
         if response.status_code == 200:
             dialog = Gtk.MessageDialog(
@@ -144,7 +174,7 @@ def add_port_mapping(internal_client, external_port, internal_port, protocol, de
                 flags=0,
                 message_type=Gtk.MessageType.INFO,
                 buttons=Gtk.ButtonsType.OK,
-                text=f"Failed to add port mapping.\n{response.text}"
+                text=f"Port mapping added successfully.\n{response.text}"
             )
             dialog.run()
             dialog.destroy()
@@ -184,7 +214,7 @@ class MainWindow(Gtk.Window):
 
         self.internalPortBox = Gtk.Entry(text="12345")
         self.externalPortBox = Gtk.Entry(text="12345")
-        self.internalIPBox = Gtk.Entry(text=(netifaces.ifaddresses(netifaces.interfaces()[2])[2][0]['addr']))
+        self.internalIPBox = Gtk.Entry(text=(netifaces.ifaddresses(netifaces.gateways()['default'][netifaces.AF_INET][1])[2][0]['addr']))
         self.leaseDurationBox = Gtk.Entry(text="0")
         self.descriptionBox = Gtk.Entry(text="Server")
         self.button1 = Gtk.RadioButton.new_with_label_from_widget(None, "TCP")
