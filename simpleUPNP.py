@@ -196,7 +196,7 @@ class MainWindow(Gtk.Window):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.set_default_size(600, 400)
-        self.set_title("MyApp")
+        self.set_title("Simple UPNP")
         
         self.box1 = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=15)
         self.inputRow = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
