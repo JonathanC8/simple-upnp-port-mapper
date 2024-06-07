@@ -141,6 +141,7 @@ def add_port_mapping(internal_client, external_port, internal_port, protocol, de
         )
         dialog.run()
         dialog.destroy()
+        print(e)
         return None
 
     if control_url:
@@ -214,7 +215,12 @@ class MainWindow(Gtk.Window):
 
         self.internalPortBox = Gtk.Entry(text="12345")
         self.externalPortBox = Gtk.Entry(text="12345")
-        self.internalIPBox = Gtk.Entry(text=(netifaces.ifaddresses(netifaces.gateways()['default'][netifaces.AF_INET][1])[2][0]['addr']))
+        ip = "192.168.1.100"
+        try:
+            ip = netifaces.ifaddresses(netifaces.gateways()['default'][netifaces.AF_INET][1])[2][0]['addr']
+        except Exception as e:
+            print("Failed to get default network device\n",e)
+        self.internalIPBox = Gtk.Entry(text=ip)
         self.leaseDurationBox = Gtk.Entry(text="0")
         self.descriptionBox = Gtk.Entry(text="Server")
         self.button1 = Gtk.RadioButton.new_with_label_from_widget(None, "TCP")
