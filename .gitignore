@@ -1,2 +1,5 @@
+__pycache__/
 build/
 dist/
+simple_upnp_gui.spec
+simple_upnp.spec
