@@ -29,7 +29,6 @@ class MainWindow(Gtk.Window):
     
     def createUPnPMappingList(self):
         self.liststore = Gtk.ListStore(str, str, int, int, bool, bool)
-        self.liststore.append(["TCP",f"192.168.1.100:{12345}", 12345, 100, False, False])
         mappings = upnp.get_port_mappings()
         if type(mappings) == dict:
             dialog = Gtk.MessageDialog(
